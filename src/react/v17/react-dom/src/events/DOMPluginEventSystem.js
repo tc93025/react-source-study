@@ -228,7 +228,7 @@ function processDispatchQueueItemsInOrder(
   dispatchListeners: Array<DispatchListener>,
   inCapturePhase: boolean,
 ): void {
-
+  // 更新的第一个log
   enableLog && console.log('processDispatchQueueItemsInOrder start')
   if (!__LOG_NAMES__.length || __LOG_NAMES__.includes('processDispatchQueueItemsInOrder')) debugger
 

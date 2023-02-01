@@ -1415,6 +1415,7 @@ function dispatchAction<S, A>(
   action: A,
 ) {
   // 获取点击开始时间
+  // 更新开始的地方
   const eventTime = requestEventTime();
 
   enableLog && console.log('dispatchAction start')

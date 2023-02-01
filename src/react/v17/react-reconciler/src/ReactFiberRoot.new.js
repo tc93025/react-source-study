@@ -83,7 +83,7 @@ export function createFiberRoot(
 ): FiberRoot {
 
   enableLog && console.log('ReactFiberRoot: createFiberRoot')
-  if (!__LOG_NAMES__.length || __LOG_NAMES__.includes('createFiberRoot')) debugger
+  // if (!__LOG_NAMES__.length || __LOG_NAMES__.includes('createFiberRoot')) debugger
 
   // 创建fiberRootNode
   const root: FiberRoot = (new FiberRootNode(containerInfo, tag, hydrate): any);

@@ -792,7 +792,7 @@ export function mergeLanes(a: Lanes | Lane, b: Lanes | Lane): Lanes {
 
 export function removeLanes(set: Lanes, subset: Lanes | Lane): Lanes {
   // 从一个lanes中删除某个lane
-  return set & ~subset;
+  return set & ~subset; // 与非计算
 }
 
 // Seems redundant, but it changes the type from a single lane (used for
@@ -840,7 +840,7 @@ export function markRootUpdated(
   // 理论上，对任何lane的任何更新都可以解除对其他lane的封锁。但是尝试每一个可能的组合是不实际的。
   // 我们需要一种启发式算法来决定渲染哪些lanes要被尝试渲染，以及在哪个批次中处理它。当前是用的是
   // 与之前的过期时间模式相同的方式：对于优先级相同或者较低的lane进行重新处理，但是如果没有包含较
-  // 低优先级的更新，就不会去处理高优先级的更新。当考虑跨不同优先级级别的更新时，这种方法很合适，但
+  // 低优先级的更新，就不会去处理高优先级的更新。这种当考虑跨不同优先级级别的更新时，方法很合适，但
   // 对于相同优先级的更新来说，这是不够的，因为我们希望对这些update并行处理。
 
   // 上面的意思是，现有的lanes优先级机制是模拟expirationTime的优先级机制，若在lanes中存在高低两种
