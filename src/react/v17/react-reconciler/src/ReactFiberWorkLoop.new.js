@@ -7,13 +7,13 @@
  * @flow
  */
 
-import type {Thenable, Wakeable} from 'shared/ReactTypes';
-import type {Fiber, FiberRoot} from './ReactInternalTypes';
-import type {Lanes, Lane} from './ReactFiberLane';
-import type {ReactPriorityLevel} from './ReactInternalTypes';
-import type {Interaction} from '../../scheduler/src/Tracing';
-import type {SuspenseState} from './ReactFiberSuspenseComponent.new';
-import type {StackCursor} from './ReactFiberStack.new';
+import type { Thenable, Wakeable } from 'shared/ReactTypes';
+import type { Fiber, FiberRoot } from './ReactInternalTypes';
+import type { Lanes, Lane } from './ReactFiberLane';
+import type { ReactPriorityLevel } from './ReactInternalTypes';
+import type { Interaction } from '../../scheduler/src/Tracing';
+import type { SuspenseState } from './ReactFiberSuspenseComponent.new';
+import type { StackCursor } from './ReactFiberStack.new';
 
 import {
   enableSuspenseServerRenderer,
@@ -44,7 +44,7 @@ import {
 // The scheduler is imported here *only* to detect whether it's been mocked
 import * as Scheduler from '../../scheduler';
 
-import {__interactionsRef, __subscriberRef} from 'scheduler/tracing';
+import { __interactionsRef, __subscriberRef } from 'scheduler/tracing';
 
 import {
   prepareForCommit,
@@ -73,7 +73,7 @@ import {
   SuspenseComponent,
   SuspenseListComponent,
 } from './ReactWorkTags';
-import {LegacyRoot} from './ReactRootTags';
+import { LegacyRoot } from './ReactRootTags';
 import {
   NoFlags,
   Placement,
@@ -129,7 +129,7 @@ import {
   lanePriorityToSchedulerPriority,
 } from './ReactFiberLane';
 import { requestCurrentTransition, NoTransition } from './ReactFiberTransition';
-import {beginWork} from './ReactFiberBeginWork.new';
+import { beginWork } from './ReactFiberBeginWork.new';
 import { completeWork } from './ReactFiberCompleteWork.new';
 import { unwindWork, unwindInterruptedWork } from './ReactFiberUnwindWork.new';
 import {
@@ -150,13 +150,13 @@ import {
   isSuspenseBoundaryBeingHidden,
   recursivelyCommitLayoutEffects,
 } from './ReactFiberCommitWork.new';
-import {enqueueUpdate} from './ReactUpdateQueue.new';
-import {resetContextDependencies} from './ReactFiberNewContext.new';
+import { enqueueUpdate } from './ReactUpdateQueue.new';
+import { resetContextDependencies } from './ReactFiberNewContext.new';
 import {
   resetHooksAfterThrow,
   ContextOnlyDispatcher,
 } from './ReactFiberHooks.new';
-import {createCapturedValue} from './ReactCapturedValue';
+import { createCapturedValue } from './ReactCapturedValue';
 import {
   push as pushToStack,
   pop as popFromStack,
@@ -169,11 +169,11 @@ import {
   stopProfilerTimerIfRunningAndRecordDelta,
 } from './ReactProfilerTimer.new';
 
-import {onCommitRoot as onCommitRootDevTools} from './ReactFiberDevToolsHook.new';
+import { onCommitRoot as onCommitRootDevTools } from './ReactFiberDevToolsHook.new';
 
 // Used by `act`
 import enqueueTask from 'shared/enqueueTask';
-import {doesFiberContain} from './ReactFiberTreeReflection';
+import { doesFiberContain } from './ReactFiberTreeReflection';
 
 const ceil = Math.ceil;
 
@@ -281,7 +281,7 @@ let pendingPassiveEffectsLanes: Lanes = NoLanes;
 let rootsWithPendingDiscreteUpdates: Set<FiberRoot> | null = null;
 
 // Use these to prevent an infinite loop of nested updates
-const NESTED_UPDATE_LIMIT = 50;
+const NESTED_UPDATE_LIMIT = 50; // react 规定大雨50次为重复调用，即render中重复调用了setstate
 let nestedUpdateCount: number = 0;
 let rootWithNestedUpdates: FiberRoot | null = null;
 
@@ -357,7 +357,7 @@ export function requestUpdateLane(fiber: Fiber): Lane {
     // 是立即优先级，是的话返回SyncLane，否则返回SyncBatchedLane
     return getCurrentPriorityLevel() === ImmediateSchedulerPriority
       ? (SyncLane: Lane)
-      : (SyncBatchedLane: Lane);
+        : (SyncBatchedLane: Lane);
   }
   // 到了这里就是ConcurrentMode
   // The algorithm for assigning an update to a lane should be stable for all
@@ -434,7 +434,7 @@ function requestRetryLane(fiber: Fiber) {
   } else if ((mode & ConcurrentMode) === NoMode) {
     return getCurrentPriorityLevel() === ImmediateSchedulerPriority
       ? (SyncLane: Lane)
-      : (SyncBatchedLane: Lane);
+        : (SyncBatchedLane: Lane);
   }
 
   // See `requestUpdateLane` for explanation of `currentEventWipLanes`
@@ -443,20 +443,22 @@ function requestRetryLane(fiber: Fiber) {
   }
   return findRetryLane(currentEventWipLanes);
 }
-/** React的更新入口 */ 
+/** React的更新入口 */
 export function scheduleUpdateOnFiber(
   fiber: Fiber,
   lane: Lane,
   eventTime: number,
 ) {
-  
-  enableLog && console.log('scheduleUpdateOnFiber start')
-  if (!__LOG_NAMES__.length || __LOG_NAMES__.includes('scheduleUpdateOnFiber')) debugger
+
+  enableLog && console.log('scheduleUpdateOnFiber start', fiber)
+  // if (!__LOG_NAMES__.length || __LOG_NAMES__.includes('scheduleUpdateOnFiber')) debugger
 
   // 第一步，检查是否有无限更新, 例如在render函数中调用了setState
   checkForNestedUpdates();
   // 第二步，向上收集fiber.childLanes
   const root = markUpdateLaneFromFiberToRoot(fiber, lane);
+
+  console.log('向上收集fiber.childLanes--------- 输出 root', root)
   if (root === null) {
     return null;
   }
@@ -517,15 +519,20 @@ export function scheduleUpdateOnFiber(
       // root inside of batchedUpdates should be synchronous, but layout updates
       // should be deferred until the end of the batch.
       performSyncWorkOnRoot(root);
+
+      console.log('直接调用任务--------------------------', fiber, lane)
     } else {
       // 到了这里，是以下几种情况：
       // 1.不是ReactDom.render
       // 2.在Render阶段又触发了更新
       // 3.在Commit阶段又触发了更新，比如componentDidMount、componentDidUpdate、useLayoutEffect里面又setState
+      console.log('如果当前有React更新任务正在进行，而且因为无法打断，所以调用ensureRootIsScheduled--------------', fiber, lane)
 
       // 如果当前有React更新任务正在进行，而且因为无法打断，所以调用ensureRootIsScheduled,
       // 目的是去复用已经在更新的任务，让这个已有的任务把这次更新顺便做了
       ensureRootIsScheduled(root, eventTime);
+
+      console.log('目的是去复用已经在更新的任务，让这个已有的任务把这次更新顺便做了')
       schedulePendingInteractions(root, lane);
       // 通过判断 executionContext 是否等于 NoContext 来确定当前更新流程是否在 React 事件流中
       // 如果不在(NoContext)，直接调用 flushSyncCallbackQueue 更新，这种情况出现在异步操作
@@ -547,7 +554,7 @@ export function scheduleUpdateOnFiber(
          */
         flushSyncCallbackQueue();
       }
-    } 
+    }
   } else {
     // 异步操作
     // Schedule a discrete update but only if it's not Sync.
@@ -557,7 +564,7 @@ export function scheduleUpdateOnFiber(
       // Only updates at user-blocking priority or greater are considered
       // discrete, even inside a discrete event.
       // UserBlockingPriority = 98, ImmediatePriority = 99
-      [UserBlockingSchedulerPriority, ImmediateSchedulerPriority].includes(priorityLevel) 
+      [UserBlockingSchedulerPriority, ImmediateSchedulerPriority].includes(priorityLevel)
     ) {
       // This is the result of a discrete event. Track the lowest priority
       // discrete update per root so we can flush them early, if needed.
@@ -569,6 +576,7 @@ export function scheduleUpdateOnFiber(
     }
     // Schedule other updates after in case the callback is sync.
     // lane不是Sync，那么是Batch或Concurrent，异步调度一下
+    console.log('不是同步的，异步调度进行更新------------------------------', fiber, lane)
     ensureRootIsScheduled(root, eventTime);
     schedulePendingInteractions(root, lane);
   }
@@ -627,10 +635,10 @@ function markUpdateLaneFromFiberToRoot(
 // of the existing task is the same as the priority of the next level that the
 // root has work on. This function is called on every update, and right before
 // exiting a task.
-/** 通知Scheduler根据更新的优先级，决定以同步还是异步的方式调度本次更新任务 */ 
+/** 通知Scheduler根据更新的优先级，决定以同步还是异步的方式调度本次更新任务 */
 function ensureRootIsScheduled(root: FiberRoot, currentTime: number) {
-  
-  enableLog && console.log('ensureRootIsScheduled start')
+
+  enableLog && console.log('ensureRootIsScheduled start -----通知Scheduler根据更新的优先级，决定以同步还是异步的方式调度本次更新任务', root, currentTime);
   if (!__LOG_NAMES__.length || __LOG_NAMES__.includes('ensureRootIsScheduled')) debugger
   // 获取旧任务，对应task上的callback，代表当前根节点正在被调度的任务
   const existingCallbackNode = root.callbackNode;
@@ -650,7 +658,8 @@ function ensureRootIsScheduled(root: FiberRoot, currentTime: number) {
   /**
    * returnNextLanesPriority()返回return_highestLanePriority，在上面的getNextLanes已经计算了
    */
-  const newCallbackPriority = returnNextLanesPriority();
+  console.log('这里为什么nextLanes一定比远Fiber上的任务要么相等要么更高，是因为位运算加法的原因吗')
+  const newCallbackPriority = returnNextLanesPriority(); 
 
   if (nextLanes === NoLanes) {
     // 如果渲染优先级为空，则不需要调度
@@ -676,15 +685,18 @@ function ensureRootIsScheduled(root: FiberRoot, currentTime: number) {
     // setState(2);
     //} 
     if (existingCallbackPriority === newCallbackPriority) {
+      console.log('新旧任务优先级相同----，existingCallbackPriority === newCallbackPriority',existingCallbackPriority, newCallbackPriority)
       // The priority hasn't changed. We can reuse the existing task. Exit.
       return;
     }
     // 代码执行到这里说明新任务的优先级高于旧任务的优先级，取消掉旧任务，实现高优先级任务插队
     // The priority changed. Cancel the existing callback. We'll schedule a new
     // one below.
+    console.log('新任务优先级高于旧任务-进入判断后吊起新任务的流程',existingCallbackPriority, newCallbackPriority)
     cancelCallback(existingCallbackNode);
   }
   // 调度一个新任务
+  console.log('接下来根据任务优先级分别开启同步模式、blocking模式、concurrent模式')
   // Schedule a new callback.
   let newCallbackNode;
   if (newCallbackPriority === SyncLanePriority) {
@@ -693,10 +705,12 @@ function ensureRootIsScheduled(root: FiberRoot, currentTime: number) {
     // 若新任务的优先级（newCallbackPriority）为同步优先级（SyncLanePriority），则同步调度
     // 传统的同步渲染和过期任务会走这里
     // 同步渲染模式
+    console.log('同步流程直接进入reconciler中下一步，应该是构建fiber，然后渲染-----')
     newCallbackNode = scheduleSyncCallback(
       performSyncWorkOnRoot.bind(null, root),
     );
   } else if (newCallbackPriority === SyncBatchedLanePriority) {
+    console.log('异步流程通过scheduleCallback进入scheduler中进行调度，先放一放----------！！！！！！')
     // 同步模式到concurrent模式的过渡模式：blocking模式会走这里
     newCallbackNode = scheduleCallback(
       ImmediateSchedulerPriority,
@@ -920,12 +934,12 @@ function finishConcurrentRender(root, exitStatus, lanes) {
       }
 
 
-        // This is not a transition, but we did trigger an avoided state.
-        // Schedule a placeholder to display after a short delay, using the Just
-        // Noticeable Difference.
-        // TODO: Is the JND optimization worth the added complexity? If this is
-        // the only reason we track the event time, then probably not.
-        // Consider removing.
+      // This is not a transition, but we did trigger an avoided state.
+      // Schedule a placeholder to display after a short delay, using the Just
+      // Noticeable Difference.
+      // TODO: Is the JND optimization worth the added complexity? If this is
+      // the only reason we track the event time, then probably not.
+      // Consider removing.
 
       const mostRecentEventTime = getMostRecentEventTime(root, lanes);
       const eventTimeMs = mostRecentEventTime;
@@ -976,7 +990,7 @@ function performSyncWorkOnRoot(root) {
     (executionContext & (RenderContext | CommitContext)) === NoContext,
     'Should not already be working.',
   );
-  
+
   enableLog && console.log('ReactFiberWorkLoop.new: performSyncWorkOnRoot')
   if (!__LOG_NAMES__.length || __LOG_NAMES__.includes('performSyncWorkOnRoot')) debugger
   flushPassiveEffects();
@@ -1150,19 +1164,19 @@ export function discreteUpdates<A, B, C, D, R>(
   const prevExecutionContext = executionContext;
   executionContext |= DiscreteEventContext;
 
-    try {
-      return runWithPriority(
-        UserBlockingSchedulerPriority,
-        fn.bind(null, a, b, c, d),
-      );
-    } finally {
-      executionContext = prevExecutionContext;
-      if (executionContext === NoContext) {
-        // Flush the immediate callbacks that were scheduled during this batch
-        resetRenderTimer();
-        flushSyncCallbackQueue();
-      }
+  try {
+    return runWithPriority(
+      UserBlockingSchedulerPriority,
+      fn.bind(null, a, b, c, d),
+    );
+  } finally {
+    executionContext = prevExecutionContext;
+    if (executionContext === NoContext) {
+      // Flush the immediate callbacks that were scheduled during this batch
+      resetRenderTimer();
+      flushSyncCallbackQueue();
     }
+  }
 
 }
 
@@ -1210,16 +1224,16 @@ export function flushControlled(fn: () => mixed): void {
   const prevExecutionContext = executionContext;
   executionContext |= BatchedContext;
 
-    try {
-      runWithPriority(ImmediateSchedulerPriority, fn);
-    } finally {
-      executionContext = prevExecutionContext;
-      if (executionContext === NoContext) {
-        // Flush the immediate callbacks that were scheduled during this batch
-        resetRenderTimer();
-        flushSyncCallbackQueue();
-      }
+  try {
+    runWithPriority(ImmediateSchedulerPriority, fn);
+  } finally {
+    executionContext = prevExecutionContext;
+    if (executionContext === NoContext) {
+      // Flush the immediate callbacks that were scheduled during this batch
+      resetRenderTimer();
+      flushSyncCallbackQueue();
     }
+  }
 
 }
 
@@ -1243,7 +1257,7 @@ function prepareFreshStack(root: FiberRoot, lanes: Lanes) {
   // workInProgressRoot第一次在这里初始化
   enableLog && console.log('prepareFreshStack start')
   if (!__LOG_NAMES__.length || __LOG_NAMES__.includes('prepareFreshStack')) debugger
-  
+
   root.finishedWork = null;
   root.finishedLanes = NoLanes;
 
@@ -1434,10 +1448,10 @@ export function renderHasNotSuspendedYet(): boolean {
 }
 
 function renderRootSync(root: FiberRoot, lanes: Lanes) {
-  
+
   enableLog && console.log('renderRootSync')
   if (!__LOG_NAMES__.length || __LOG_NAMES__.includes('renderRootSync')) debugger
-  
+
   const prevExecutionContext = executionContext;
   executionContext |= RenderContext;
   const prevDispatcher = pushDispatcher();
@@ -1473,7 +1487,7 @@ function renderRootSync(root: FiberRoot, lanes: Lanes) {
     invariant(
       false,
       'Cannot commit an incomplete root. This error is likely caused by a ' +
-        'bug in React. Please file an issue.',
+      'bug in React. Please file an issue.',
     );
   }
 
@@ -1488,7 +1502,7 @@ function renderRootSync(root: FiberRoot, lanes: Lanes) {
 // The work loop is an extremely hot path. Tell Closure not to inline it.
 /** @noinline */
 function workLoopSync() {
-  
+
   enableLog && console.log('workLoopSync')
   if (!__LOG_NAMES__.length || __LOG_NAMES__.includes('workLoopSync')) debugger
 
@@ -1503,7 +1517,7 @@ function workLoopSync() {
 }
 
 function renderRootConcurrent(root: FiberRoot, lanes: Lanes) {
-  
+
   enableLog && console.log('renderRootConcurrent start')
   if (!__LOG_NAMES__.length || __LOG_NAMES__.includes('renderRootConcurrent')) debugger
 
@@ -1585,7 +1599,7 @@ function workLoopConcurrent() {
 }
 
 function performUnitOfWork(unitOfWork: Fiber): void {
-  
+
   enableLog && console.log('performUnitOfWork start')
   if (!__LOG_NAMES__.length || __LOG_NAMES__.includes('performUnitOfWork')) debugger
 
@@ -1629,7 +1643,7 @@ function completeUnitOfWork(unitOfWork: Fiber): void {
   // Attempt to complete the current unit of work, then move to the next
   // sibling. If there are no more siblings, return to the parent fiber.
   let completedWork = unitOfWork;
-  
+
   enableLog && console.log('completeUnitOfWork start')
   if (!__LOG_NAMES__.length || __LOG_NAMES__.includes('completeUnitOfWork')) debugger
 
@@ -1746,12 +1760,12 @@ function completeUnitOfWork(unitOfWork: Fiber): void {
   }
   enableLog && console.log('completeUnitOfWork end')
 }
-/** commit阶段的起点 */  
+/** commit阶段的起点 */
 function commitRoot(root) {
-  
+
   enableLog && console.log('commitRoot start')
   if (!__LOG_NAMES__.length || __LOG_NAMES__.includes('commitRoot')) debugger
-  
+
   const renderPriorityLevel = getCurrentPriorityLevel();
   // commit阶段是同步执行的，优先级最高
   runWithPriority(
@@ -1777,7 +1791,7 @@ function commitRootImpl(root, renderPriorityLevel) {
     // no more pending effects.
     // TODO: Might be better if `flushPassiveEffects` did not automatically
     // flush synchronous work at the end, to avoid factoring hazards like this.
-     // 触发useEffect回调与其他同步任务。
+    // 触发useEffect回调与其他同步任务。
     //  由于这些任务可能触发新的渲染，所以这里要一直遍历执行直到没有任务
     // 会进入这里的情况就是：比如我组件里有useEffect、useLayoutEffect，且在useLayoutEffect里面又setState
     // 因为第一次render时判断到有useEffect，所以rootWithPendingPassiveEffects不为null，那么在useLayoutEffect里面setState
@@ -1793,7 +1807,7 @@ function commitRootImpl(root, renderPriorityLevel) {
   // root.finishedWork指当前应用的rootFiber
   const finishedWork = root.finishedWork;
   const lanes = root.finishedLanes;
-  
+
   if (finishedWork === null) {
 
     return null;
@@ -1804,7 +1818,7 @@ function commitRootImpl(root, renderPriorityLevel) {
   invariant(
     finishedWork !== root.current,
     'Cannot commit the same tree as before. This error is likely caused by ' +
-      'a bug in React. Please file an issue.',
+    'a bug in React. Please file an issue.',
   );
 
   // commitRoot never returns a continuation; it always finishes synchronously.
@@ -2059,13 +2073,13 @@ function commitRootImpl(root, renderPriorityLevel) {
   }
 
   onCommitRootDevTools(finishedWork.stateNode, renderPriorityLevel);
- /*
-  * 每次commit阶段完成后，再执行一遍ensureRootIsScheduled，
-  * 保证root上任何的pendingLanes都能被处理,即确保是否还有任务需要被调度。
-  * 例如，高优先级插队的更新完成后，commit完成后，还会再执行一遍，保证之前跳过的低优先级任务
-  * 重新调度，或者上面的Layout节点调用recursivelyCommitLayoutEffects里面在ComponentDid(Mount)Update
-  * 里面又调用了setState之类的，那下面就要再检测一下，有则再次发起调度
-  * */
+  /*
+   * 每次commit阶段完成后，再执行一遍ensureRootIsScheduled，
+   * 保证root上任何的pendingLanes都能被处理,即确保是否还有任务需要被调度。
+   * 例如，高优先级插队的更新完成后，commit完成后，还会再执行一遍，保证之前跳过的低优先级任务
+   * 重新调度，或者上面的Layout节点调用recursivelyCommitLayoutEffects里面在ComponentDid(Mount)Update
+   * 里面又调用了setState之类的，那下面就要再检测一下，有则再次发起调度
+   * */
   // Always call this before exiting `commitRoot`, to ensure that any
   // additional work on this root is scheduled.
   ensureRootIsScheduled(root, now());
@@ -2341,14 +2355,14 @@ export function flushPassiveEffects(): boolean {
    * pendingPassiveEffectsRenderPriority会在commitRootImpl里面rootDoesHavePassiveEffects为true的时候赋值为：
    * pendingPassiveEffectsRenderPriority = renderPriorityLevel
    */
-  
+
   if (pendingPassiveEffectsRenderPriority !== NoSchedulerPriority) {
     const priorityLevel = Math.min(pendingPassiveEffectsRenderPriority, NormalSchedulerPriority)
 
     pendingPassiveEffectsRenderPriority = NoSchedulerPriority;
 
     const priority = runWithPriority(priorityLevel, flushPassiveEffectsImpl);
-    
+
     enableLog && console.log('flushPassiveEffects end')
     return priority
 
@@ -2460,10 +2474,10 @@ function flushPassiveUnmountEffectsInsideOfDeletedTree(
 }
 
 function flushPassiveEffectsImpl() {
-  
+
   enableLog && console.log('flushPassiveEffectsImpl start')
   if (!__LOG_NAMES__.length || __LOG_NAMES__.includes('flushPassiveEffectsImpl')) debugger
-  
+
   /** rootWithPendingPassiveEffects是 在commitRootImpl中
    * 通过判断 if (rootDoesHavePassiveEffects)，true的话则将
    * rootWithPendingPassiveEffects赋值为在commitRootImpl中传入的root
@@ -2706,7 +2720,7 @@ export function resolveRetryWakeable(boundaryFiber: Fiber, wakeable: Wakeable) {
         invariant(
           false,
           'Pinged unknown suspense boundary type. ' +
-            'This is probably a bug in React.',
+          'This is probably a bug in React.',
         );
     }
   } else {
@@ -2735,16 +2749,16 @@ function jnd(timeElapsed: number) {
   return timeElapsed < 120
     ? 120
     : timeElapsed < 480
-    ? 480
-    : timeElapsed < 1080
-    ? 1080
-    : timeElapsed < 1920
-    ? 1920
-    : timeElapsed < 3000
-    ? 3000
-    : timeElapsed < 4320
-    ? 4320
-    : ceil(timeElapsed / 1960) * 1960;
+      ? 480
+      : timeElapsed < 1080
+        ? 1080
+        : timeElapsed < 1920
+          ? 1920
+          : timeElapsed < 3000
+            ? 3000
+            : timeElapsed < 4320
+              ? 4320
+              : ceil(timeElapsed / 1960) * 1960;
 }
 /** 检查是否无限更新 */
 function checkForNestedUpdates() {
@@ -2755,9 +2769,9 @@ function checkForNestedUpdates() {
     invariant(
       false,
       'Maximum update depth exceeded. This can happen when a component ' +
-        'repeatedly calls setState inside componentWillUpdate or ' +
-        'componentDidUpdate. React limits the number of nested updates to ' +
-        'prevent infinite loops.',
+      'repeatedly calls setState inside componentWillUpdate or ' +
+      'componentDidUpdate. React limits the number of nested updates to ' +
+      'prevent infinite loops.',
     );
   }
 }
@@ -2767,7 +2781,7 @@ function checkForNestedUpdates() {
 
 
 // a 'shared' variable that changes when act() opens/closes in tests.
-export const IsThisRendererActing = {current: (false: boolean)};
+export const IsThisRendererActing = { current: (false: boolean) };
 
 
 
@@ -2829,6 +2843,7 @@ function scheduleInteractions(
 }
 
 function schedulePendingInteractions(root: FiberRoot, lane: Lane | Lanes) {
+  console.log('没有任务在等，直接进行更新----------------------------')
   // This is called when work is scheduled on a root.
   // It associates the current interactions with the newly-scheduled expiration.
   // They will be restored when that expiration is later committed.
