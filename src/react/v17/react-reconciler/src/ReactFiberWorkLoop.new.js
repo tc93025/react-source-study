@@ -520,7 +520,7 @@ export function scheduleUpdateOnFiber(
       // should be deferred until the end of the batch.
       performSyncWorkOnRoot(root);
 
-      console.log('同步任务--------------------------', fiber, lane)
+      console.log('直接调用任务--------------------------', fiber, lane)
     } else {
       // 到了这里，是以下几种情况：
       // 1.不是ReactDom.render
@@ -638,7 +638,7 @@ function markUpdateLaneFromFiberToRoot(
 /** 通知Scheduler根据更新的优先级，决定以同步还是异步的方式调度本次更新任务 */
 function ensureRootIsScheduled(root: FiberRoot, currentTime: number) {
 
-  enableLog && console.log('ensureRootIsScheduled start')
+  enableLog && console.log('ensureRootIsScheduled start -----通知Scheduler根据更新的优先级，决定以同步还是异步的方式调度本次更新任务', root, currentTime);
   if (!__LOG_NAMES__.length || __LOG_NAMES__.includes('ensureRootIsScheduled')) debugger
   // 获取旧任务，对应task上的callback，代表当前根节点正在被调度的任务
   const existingCallbackNode = root.callbackNode;
@@ -658,7 +658,8 @@ function ensureRootIsScheduled(root: FiberRoot, currentTime: number) {
   /**
    * returnNextLanesPriority()返回return_highestLanePriority，在上面的getNextLanes已经计算了
    */
-  const newCallbackPriority = returnNextLanesPriority();
+  console.log('这里为什么nextLanes一定比远Fiber上的任务要么相等要么更高，是因为位运算加法的原因吗')
+  const newCallbackPriority = returnNextLanesPriority(); 
 
   if (nextLanes === NoLanes) {
     // 如果渲染优先级为空，则不需要调度
@@ -684,15 +685,18 @@ function ensureRootIsScheduled(root: FiberRoot, currentTime: number) {
     // setState(2);
     //} 
     if (existingCallbackPriority === newCallbackPriority) {
+      console.log('新旧任务优先级相同----，existingCallbackPriority === newCallbackPriority',existingCallbackPriority, newCallbackPriority)
       // The priority hasn't changed. We can reuse the existing task. Exit.
       return;
     }
     // 代码执行到这里说明新任务的优先级高于旧任务的优先级，取消掉旧任务，实现高优先级任务插队
     // The priority changed. Cancel the existing callback. We'll schedule a new
     // one below.
+    console.log('新任务优先级高于旧任务-进入判断后吊起新任务的流程',existingCallbackPriority, newCallbackPriority)
     cancelCallback(existingCallbackNode);
   }
   // 调度一个新任务
+  console.log('接下来根据任务优先级分别开启同步模式、blocking模式、concurrent模式')
   // Schedule a new callback.
   let newCallbackNode;
   if (newCallbackPriority === SyncLanePriority) {
@@ -701,10 +705,12 @@ function ensureRootIsScheduled(root: FiberRoot, currentTime: number) {
     // 若新任务的优先级（newCallbackPriority）为同步优先级（SyncLanePriority），则同步调度
     // 传统的同步渲染和过期任务会走这里
     // 同步渲染模式
+    console.log('同步流程直接进入reconciler中下一步，应该是构建fiber，然后渲染-----')
     newCallbackNode = scheduleSyncCallback(
       performSyncWorkOnRoot.bind(null, root),
     );
   } else if (newCallbackPriority === SyncBatchedLanePriority) {
+    console.log('异步流程通过scheduleCallback进入scheduler中进行调度，先放一放----------！！！！！！')
     // 同步模式到concurrent模式的过渡模式：blocking模式会走这里
     newCallbackNode = scheduleCallback(
       ImmediateSchedulerPriority,
